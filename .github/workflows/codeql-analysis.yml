@@ -15,6 +15,7 @@ on:
       - 'main'
 env:
   DOTNET_VERSION: 5.0.x
+  CONFIGURATION: Release
 jobs:
   analyze:
     name: Analyze
@@ -37,22 +38,26 @@ jobs:
       uses: github/codeql-action/init@v1
       with:
         languages: ${{ matrix.language }}
-        queries: security-and-quality
+        queries: security-extended, security-and-quality
         
     - name: Setup .NET version ${{ env.DOTNET_VERSION }}
       uses: actions/setup-dotnet@v1
       with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           
-    - run: |
+    - name: .NET restore all src projects    
+      run: |
         dotnet restore src/Domain/Domain.csproj
         dotnet restore src/Application/Application.csproj
         dotnet restore src/Infrastructure/Infrastructure.csproj
         dotnet restore src/WebUI/WebUI.csproj
-        dotnet build src/Domain/Domain.csproj /p:UseSharedCompilation=false
-        dotnet build src/Application/Application.csproj /p:UseSharedCompilation=false
-        dotnet build src/Infrastructure/Infrastructure.csproj /p:UseSharedCompilation=false
-        dotnet build src/WebUI/WebUI.csproj /p:UseSharedCompilation=false
+        
+    - name: .NET build all src projects    
+      run: |
+        dotnet build src/Domain/Domain.csproj /p:UseSharedCompilation=false --no-restore --configuration ${{ env.CONFIGURATION }}
+        dotnet build src/Application/Application.csproj /p:UseSharedCompilation=false --no-restore --configuration ${{ env.CONFIGURATION }}
+        dotnet build src/Infrastructure/Infrastructure.csproj /p:UseSharedCompilation=false --no-restore --configuration ${{ env.CONFIGURATION }}
+        dotnet build src/WebUI/WebUI.csproj /p:UseSharedCompilation=false --no-restore --configuration ${{ env.CONFIGURATION }}
         
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
