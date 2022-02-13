@@ -4,16 +4,17 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'src/Application/**'
+      - 'src/**'
     branches:
       - 'main'
       - 'feature/**'
   push:
     paths:
-      - 'src/Application/**'
+      - 'src/**'
     branches:
       - 'main'
-
+env:
+  DOTNET_VERSION: 6.0.x
 jobs:
   analyze:
     name: Analyze
@@ -26,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'csharp', 'javascript' ]
+        language: [ 'csharp' ]
 
     steps:
     - name: Checkout repository
@@ -37,11 +38,21 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         queries: security-and-quality
-    
-    - if: matrix.language == 'csharp'
-      name: Build C# Projects
-      id: build-csharp-projects
-      uses: github/codeql-action/autobuild@v1
-
+        
+    - name: Setup .NET version ${{ env.DOTNET_VERSION }}
+      uses: actions/setup-dotnet@v1
+      with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          
+    - run: |
+        dotnet restore src/Domain/Domain.csproj
+        dotnet restore src/Application/Application.csproj
+        dotnet restore src/Infrastructure/Infrastructure.csproj
+        dotnet restore src/WebUI/WebUI.csproj
+        dotnet build src/Domain/Domain.csproj /p:UseSharedCompilation=false
+        dotnet build src/Application/Application.csproj /p:UseSharedCompilation=false
+        dotnet build src/Infrastructure/Infrastructure.csproj /p:UseSharedCompilation=false
+        dotnet build src/WebUI/WebUI.csproj /p:UseSharedCompilation=false
+        
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
